@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Какое у тебя осеннее утро?</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script async src="https://st.max.ru/js/max-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ============ ЦВЕТА: берутся из темы Telegram, если открыто в нём ============ */
@@ -197,7 +198,8 @@ const CONFIG = {
   wbUrl: "https://www.wildberries.ru/catalog/17211213/detail.aspx",   // ← карточка WB
   ozonUrl: "https://www.ozon.ru/search/?text=%D0%A0%D0%B0%D1%81%D1%81%D0%B2%D0%B5%D1%82+%D0%9F%D0%BB%D1%8E%D1%81+2.0", // ← Ozon (поиск; можно заменить на карточку)
   price: "",                                          // цена (или "" чтобы скрыть)
-  botUsername: "",                                    // ← имя бота без @, для кнопки «поделиться»
+  botUsername: "",                                    // ← имя бота в Telegram без @, для кнопки «поделиться»
+  maxBotLink: "",                                     // ← ссылка на бота в MAX, для кнопки «поделиться» внутри MAX
   features: [
     ["🌅", "Плавный рассвет за 15 минут"],
     ["🌙", "Режим заката для засыпания"],
@@ -311,14 +313,37 @@ const RESULTS = {
 };
 
 /* ============ ЛОГИКА ============ */
-const tg = window.Telegram && window.Telegram.WebApp;
-if (tg && tg.initData !== undefined) {
-  tg.ready();
-  tg.expand();
-  try { tg.setHeaderColor('bg_color'); } catch (e) {}
-  if (tg.colorScheme) document.documentElement.setAttribute('data-theme', tg.colorScheme);
+/* ============ ПЛАТФОРМА: Telegram, MAX или обычный браузер ============ */
+function platform() {
+  const t = window.Telegram && window.Telegram.WebApp;
+  if (t && t.initData) return { name: 'tg', app: t };
+  const m = window.WebApp;                       // MAX Bridge
+  if (m && m.initData) return { name: 'max', app: m };
+  return { name: 'web', app: null };
 }
-const haptic = (type) => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(type || 'light'); } catch (e) {} };
+(function initTelegram() {
+  const t = window.Telegram && window.Telegram.WebApp;
+  if (!(t && t.initData)) return;
+  t.ready(); t.expand();
+  try { t.setHeaderColor('bg_color'); } catch (e) {}
+  if (t.colorScheme) document.documentElement.setAttribute('data-theme', t.colorScheme);
+})();
+const haptic = (type) => { try { const a = platform().app; a && a.HapticFeedback && a.HapticFeedback.impactOccurred(type || 'light'); } catch (e) {} };
+const notify = (type) => { try { const a = platform().app; a && a.HapticFeedback && a.HapticFeedback.notificationOccurred(type); } catch (e) {} };
+function openExternal(url) {
+  const a = platform().app;
+  if (a && a.openLink) a.openLink(url); else window.open(url, '_blank');
+}
+function shareText(text) {
+  const p = platform();
+  if (p.name === 'max') {
+    try { p.app.shareMaxContent({ text: text, link: CONFIG.maxBotLink || location.href }); return; } catch (e) {}
+  }
+  const link = CONFIG.botUsername ? `https://t.me/${CONFIG.botUsername}` : location.href;
+  if (p.name === 'web' && navigator.share) { navigator.share({ text: text, url: link }).catch(() => {}); return; }
+  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+  if (p.name === 'tg') p.app.openTelegramLink(url); else window.open(url, '_blank');
+}
 
 let current = 0;
 let scores = {};
@@ -401,24 +426,18 @@ function showResult() {
   document.getElementById('pPrice').innerHTML = CONFIG.price ? `Цена: <b>${CONFIG.price}</b>` : '';
   document.getElementById('footer').textContent = `${CONFIG.brand} · Тест носит развлекательный характер`;
 
-  try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+  notify('success');
   show('result');
 }
 
 function openShop(shop) {
   haptic('medium');
-  const url = shop === 'ozon' ? CONFIG.ozonUrl : CONFIG.wbUrl;
-  if (tg && tg.openLink) tg.openLink(url);
-  else window.open(url, '_blank');
+  openExternal(shop === 'ozon' ? CONFIG.ozonUrl : CONFIG.wbUrl);
 }
 
 function shareResult() {
   const r = RESULTS[resultType];
-  const link = CONFIG.botUsername ? `https://t.me/${CONFIG.botUsername}` : location.href;
-  const text = `Я — «${r.title}» ${r.emoji} А какое осеннее утро у тебя? Пройди тест за минуту 👇`;
-  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
-  if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
-  else window.open(url, '_blank');
+  shareText(`Я — «${r.title}» ${r.emoji} А какое осеннее утро у тебя? Пройди тест за минуту 👇`);
 }
 
 function restart() { haptic('light'); show('start'); }
