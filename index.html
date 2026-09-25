@@ -123,6 +123,7 @@
   .price { font-size: 14px; opacity: .85; margin-bottom: 14px; }
   .price b { font-size: 22px; opacity: 1; }
   .product .btn { background: #fff; color: #7a3a2e; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+  .product .btn.shop-ozon { background: rgba(255,255,255,.14); color: #fff; border: 1.5px solid rgba(255,255,255,.55); box-shadow: none; }
 
   .footer { text-align: center; font-size: 12px; color: var(--hint); margin-top: 20px; }
 </style>
@@ -175,7 +176,8 @@
       <p id="pPitch"></p>
       <ul class="features" id="pFeatures"></ul>
       <div class="price" id="pPrice"></div>
-      <button class="btn" onclick="openShop()">Смотреть на Wildberries</button>
+      <button class="btn" onclick="openShop('wb')">Купить на Wildberries</button>
+      <button class="btn shop-ozon" onclick="openShop('ozon')">Купить на Ozon</button>
     </div>
 
     <button class="btn ghost" onclick="shareResult()">📤 Отправить тест подруге</button>
@@ -190,16 +192,17 @@
    НАСТРОЙКИ — всё, что нужно поменять под свой товар, находится здесь
    ===================================================================== */
 const CONFIG = {
-  brand: "Рассвет",                                   // название бренда
-  productName: "Световой будильник «Рассвет»",        // название товара
-  wbUrl: "https://www.wildberries.ru/",               // ← ссылка на карточку WB
-  price: "3 490 ₽",                                   // цена (или "" чтобы скрыть)
+  brand: "Тест осеннего утра",                        // подпись в подвале
+  productName: "Светобудильник «Рассвет Плюс 2.0»",   // название товара
+  wbUrl: "https://www.wildberries.ru/catalog/17211213/detail.aspx",   // ← карточка WB
+  ozonUrl: "https://www.ozon.ru/search/?text=%D0%A0%D0%B0%D1%81%D1%81%D0%B2%D0%B5%D1%82+%D0%9F%D0%BB%D1%8E%D1%81+2.0", // ← Ozon (поиск; можно заменить на карточку)
+  price: "",                                          // цена (или "" чтобы скрыть)
   botUsername: "",                                    // ← имя бота без @, для кнопки «поделиться»
   features: [
-    ["🌅", "Имитация рассвета 10–60 минут"],
+    ["🌅", "Плавный рассвет за 15 минут"],
     ["🌙", "Режим заката для засыпания"],
     ["🐦", "Звуки природы вместо звонка"],
-    ["💡", "Ночник с регулировкой яркости"]
+    ["🔋", "Беспроводная зарядка для телефона"]
   ]
 };
 
@@ -281,7 +284,7 @@ const RESULTS = {
       "Убери телефон подальше от кровати, чтобы вставать за ним.",
       "Мягкое пробуждение светом и тихими звуками меньше похоже на стресс."
     ],
-    pitch: "Свет усиливается за 30 минут до подъёма, а потом включаются звуки природы. Такое пробуждение воспринимается спокойнее, и кнопку «отложить» хочется нажимать реже."
+    pitch: "Свет плавно усиливается за 15 минут до подъёма, а потом включаются звуки природы. Такое пробуждение воспринимается спокойнее, и кнопку «отложить» хочется нажимать реже."
   },
   owl: {
     emoji: "🦉",
@@ -395,17 +398,18 @@ function showResult() {
   document.getElementById('pName').textContent = CONFIG.productName;
   document.getElementById('pPitch').textContent = r.pitch;
   document.getElementById('pFeatures').innerHTML = CONFIG.features.map(f => `<li><span>${f[0]}</span>${f[1]}</li>`).join('');
-  document.getElementById('pPrice').innerHTML = CONFIG.price ? `Цена на WB: <b>${CONFIG.price}</b>` : '';
-  document.getElementById('footer').textContent = `© ${CONFIG.brand} · Тест носит развлекательный характер`;
+  document.getElementById('pPrice').innerHTML = CONFIG.price ? `Цена: <b>${CONFIG.price}</b>` : '';
+  document.getElementById('footer').textContent = `${CONFIG.brand} · Тест носит развлекательный характер`;
 
   try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success'); } catch (e) {}
   show('result');
 }
 
-function openShop() {
+function openShop(shop) {
   haptic('medium');
-  if (tg && tg.openLink) tg.openLink(CONFIG.wbUrl);
-  else window.open(CONFIG.wbUrl, '_blank');
+  const url = shop === 'ozon' ? CONFIG.ozonUrl : CONFIG.wbUrl;
+  if (tg && tg.openLink) tg.openLink(url);
+  else window.open(url, '_blank');
 }
 
 function shareResult() {
