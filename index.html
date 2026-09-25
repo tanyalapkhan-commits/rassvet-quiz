@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Какое у тебя осеннее утро?</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============ ЦВЕТА: берутся из темы Telegram, если открыто в нём ============ */
+  :root {
+    --bg: var(--tg-theme-bg-color, #fffaf5);
+    --card: var(--tg-theme-secondary-bg-color, #ffffff);
+    --text: var(--tg-theme-text-color, #2b2320);
+    --hint: var(--tg-theme-hint-color, #8a7d76);
+    --accent: #ff8a3d;
+    --accent-2: #ffb347;
+    --accent-soft: rgba(255, 138, 61, 0.12);
+    --border: rgba(43, 35, 32, 0.08);
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: var(--tg-theme-bg-color, #1c1714);
+      --card: var(--tg-theme-secondary-bg-color, #2a221e);
+      --text: var(--tg-theme-text-color, #f5ece6);
+      --hint: var(--tg-theme-hint-color, #a8988f);
+      --accent-soft: rgba(255, 138, 61, 0.18);
+      --border: rgba(255, 255, 255, 0.08);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--tg-theme-bg-color, #1c1714);
+    --card: var(--tg-theme-secondary-bg-color, #2a221e);
+    --text: var(--tg-theme-text-color, #f5ece6);
+    --hint: var(--tg-theme-hint-color, #a8988f);
+    --accent-soft: rgba(255, 138, 61, 0.18);
+    --border: rgba(255, 255, 255, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .app { max-width: 480px; margin: 0 auto; padding: 16px 16px 32px; }
+  .screen { display: none; animation: fadeUp .45s ease both; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  /* ============ РАССВЕТ (иллюстрация) ============ */
+  .dawn {
+    position: relative; height: 220px; border-radius: 24px; overflow: hidden;
+    background: linear-gradient(180deg, #2d2350 0%, #7a4a7e 40%, #ff8a5c 75%, #ffc26b 100%);
+    margin-bottom: 24px;
+  }
+  .sun {
+    position: absolute; left: 50%; bottom: -60px; width: 130px; height: 130px; margin-left: -65px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff3c4 0%, #ffd27a 45%, #ffa94d 100%);
+    box-shadow: 0 0 60px 20px rgba(255, 190, 100, .55);
+    animation: rise 3.5s ease-out forwards;
+  }
+  @keyframes rise { to { bottom: 40px; } }
+  .hill { position: absolute; bottom: 0; left: -10%; width: 120%; height: 70px; background: #3a2a3f; border-radius: 50% 50% 0 0; opacity: .85; }
+  .star { position: absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; opacity: .8; animation: fade 3.5s ease forwards; }
+  @keyframes fade { to { opacity: 0; } }
+
+  h1 { font-size: 28px; line-height: 1.2; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 22px; line-height: 1.25; font-weight: 800; margin-bottom: 18px; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+  p.lead { color: var(--hint); font-size: 16px; margin-bottom: 24px; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .chip { background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 99px; }
+
+  /* ============ КНОПКИ ============ */
+  .btn {
+    display: block; width: 100%; border: none; cursor: pointer; font-family: inherit;
+    font-size: 16px; font-weight: 700; padding: 16px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff;
+    box-shadow: 0 8px 20px rgba(255, 138, 61, .3); transition: transform .15s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; color: var(--text); box-shadow: none; border: 1.5px solid var(--border); margin-top: 10px; }
+  .btn + .btn { margin-top: 10px; }
+
+  /* ============ ВОПРОСЫ ============ */
+  .progress { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+  .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .4s ease; }
+  .step { font-size: 13px; color: var(--hint); font-weight: 600; margin-bottom: 20px; }
+  .q-emoji { font-size: 44px; margin-bottom: 8px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    text-align: left; font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; cursor: pointer; transition: all .15s; display: flex; gap: 12px; align-items: center;
+  }
+  .option:active { transform: scale(.99); }
+  .option.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .option .o-emoji { font-size: 22px; flex-shrink: 0; }
+
+  /* ============ РЕЗУЛЬТАТ ============ */
+  .result-hero { text-align: center; background: var(--card); border-radius: 24px; padding: 28px 20px; margin-bottom: 16px; border: 1px solid var(--border); }
+  .result-emoji { font-size: 64px; margin-bottom: 6px; }
+  .result-label { font-size: 13px; color: var(--hint); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .result-title { font-size: 26px; font-weight: 800; margin: 4px 0 12px; line-height: 1.2; }
+  .result-text { color: var(--hint); font-size: 15px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .tips { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .tips li { display: flex; gap: 10px; font-size: 15px; }
+  .tips li::before { content: '☀️'; flex-shrink: 0; }
+
+  .product { position: relative; overflow: hidden; background: linear-gradient(160deg, #2d2350 0%, #7a4a7e 55%, #ff8a5c 120%); color: #fff; border: none; }
+  .product .badge { display: inline-block; background: rgba(255,255,255,.18); font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; margin-bottom: 12px; }
+  .product h3 { font-size: 20px; color: #fff; }
+  .product p { opacity: .9; font-size: 15px; margin-bottom: 16px; }
+  .features { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .features li { background: rgba(255,255,255,.12); border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .features li span { display: block; font-size: 20px; margin-bottom: 4px; }
+  .price { font-size: 14px; opacity: .85; margin-bottom: 14px; }
+  .price b { font-size: 22px; opacity: 1; }
+  .product .btn { background: #fff; color: #7a3a2e; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+
+  .footer { text-align: center; font-size: 12px; color: var(--hint); margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ СТАРТ ============ -->
+  <section class="screen active" id="start">
+    <div class="dawn" id="dawn">
+      <div class="sun"></div>
+      <div class="hill"></div>
+    </div>
+    <h1>Какое у тебя осеннее утро?</h1>
+    <p class="lead">Темнеет рано, вставать всё тяжелее, а кофе уже не спасает? Ответь на 5 вопросов — узнаешь свой тип утра и что с ним делать.</p>
+    <div class="meta">
+      <span class="chip">⏱ 1 минута</span>
+      <span class="chip">5 вопросов</span>
+      <span class="chip">Советы под тебя</span>
+    </div>
+    <button class="btn" onclick="startQuiz()">Узнать свой тип утра</button>
+  </section>
+
+  <!-- ============ ВОПРОС ============ -->
+  <section class="screen" id="quiz">
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="step" id="stepLabel"></div>
+    <div class="q-emoji" id="qEmoji"></div>
+    <h2 id="qText"></h2>
+    <div class="options" id="options"></div>
+  </section>
+
+  <!-- ============ РЕЗУЛЬТАТ ============ -->
+  <section class="screen" id="result">
+    <div class="result-hero">
+      <div class="result-emoji" id="rEmoji"></div>
+      <div class="result-label">Твой тип утра</div>
+      <div class="result-title" id="rTitle"></div>
+      <div class="result-text" id="rText"></div>
+    </div>
+
+    <div class="card">
+      <h3>Что поможет именно тебе</h3>
+      <ul class="tips" id="rTips"></ul>
+    </div>
+
+    <div class="card product">
+      <span class="badge" id="pBadge"></span>
+      <h3 id="pName"></h3>
+      <p id="pPitch"></p>
+      <ul class="features" id="pFeatures"></ul>
+      <div class="price" id="pPrice"></div>
+      <button class="btn" onclick="openShop()">Смотреть на Wildberries</button>
+    </div>
+
+    <button class="btn ghost" onclick="shareResult()">📤 Отправить тест подруге</button>
+    <button class="btn ghost" onclick="restart()">↺ Пройти заново</button>
+    <div class="footer" id="footer"></div>
+  </section>
+
+</div>
+
+<script>
+/* =====================================================================
+   НАСТРОЙКИ — всё, что нужно поменять под свой товар, находится здесь
+   ===================================================================== */
+const CONFIG = {
+  brand: "Рассвет",                                   // название бренда
+  productName: "Световой будильник «Рассвет»",        // название товара
+  wbUrl: "https://www.wildberries.ru/",               // ← ссылка на карточку WB
+  price: "3 490 ₽",                                   // цена (или "" чтобы скрыть)
+  botUsername: "",                                    // ← имя бота без @, для кнопки «поделиться»
+  features: [
+    ["🌅", "Имитация рассвета 10–60 минут"],
+    ["🌙", "Режим заката для засыпания"],
+    ["🐦", "Звуки природы вместо звонка"],
+    ["💡", "Ночник с регулировкой яркости"]
+  ]
+};
+
+/* ============ ВОПРОСЫ ============
+   Типы: bear — «Сонный медвежонок», snooze — «Боец с будильником»,
+         owl — «Осенняя сова», fog — «Утро в тумане»                 */
+const QUESTIONS = [
+  {
+    emoji: "⏰",
+    text: "Как обычно проходит твой подъём в будни?",
+    options: [
+      { e: "🔁", t: "Три будильника и «ещё пять минуточек»", type: "snooze" },
+      { e: "🌫", t: "Встаю сразу, но первый час как в тумане", type: "fog" },
+      { e: "🧸", t: "Сплю много, а всё равно не могу встать", type: "bear" },
+      { e: "🦉", t: "Легла поздно — любой подъём мучение", type: "owl" }
+    ]
+  },
+  {
+    emoji: "🌙",
+    text: "Во сколько ты обычно засыпаешь?",
+    options: [
+      { e: "😴", t: "До 23:00 — и всё равно мало", type: "bear" },
+      { e: "🕚", t: "Между 23:00 и полуночью", type: "fog" },
+      { e: "🌌", t: "После часа ночи", type: "owl" },
+      { e: "🎲", t: "Каждый день по-разному", type: "snooze" }
+    ]
+  },
+  {
+    emoji: "📱",
+    text: "Что ты делаешь последние полчаса перед сном?",
+    options: [
+      { e: "📱", t: "Листаю ленту — «ещё один рилс»", type: "owl" },
+      { e: "📺", t: "Досматриваю серию или читаю", type: "bear" },
+      { e: "🪫", t: "Отключаюсь почти сразу от усталости", type: "fog" },
+      { e: "⏰", t: "Выставляю пять будильников подряд", type: "snooze" }
+    ]
+  },
+  {
+    emoji: "🍂",
+    text: "Как ты чувствуешь себя к обеду этой осенью?",
+    options: [
+      { e: "🥱", t: "Всё время хочется прилечь", type: "bear" },
+      { e: "🙂", t: "Нормально — самое тяжёлое это утро", type: "snooze" },
+      { e: "🌆", t: "Раскачиваюсь только к вечеру", type: "owl" },
+      { e: "🌧", t: "Вялость и настроение на нуле", type: "fog" }
+    ]
+  },
+  {
+    emoji: "✨",
+    text: "Каким было бы твоё идеальное утро?",
+    options: [
+      { e: "🔕", t: "Проснуться самой, без противного звонка", type: "snooze" },
+      { e: "☀️", t: "Открыть глаза — а в комнате солнце", type: "fog" },
+      { e: "🛌", t: "Наконец-то выспаться", type: "bear" },
+      { e: "🌙", t: "Легко засыпать вечером и не мучиться утром", type: "owl" }
+    ]
+  }
+];
+
+/* ============ РЕЗУЛЬТАТЫ ============ */
+const RESULTS = {
+  bear: {
+    emoji: "🧸",
+    title: "Сонный медвежонок",
+    text: "Ты спишь достаточно, но организм осенью будто уходит в спячку. Утром темно — и мозг честно считает, что ещё ночь.",
+    tips: [
+      "Сразу после подъёма — яркий свет: включи всё освещение или выйди к окну.",
+      "Держи одно время подъёма даже в выходные — так легче перестроиться.",
+      "Пробуждение светом вместо звонка помогает телу понять, что утро уже наступило."
+    ],
+    pitch: "Будильник постепенно наполняет комнату тёплым светом, как настоящий рассвет. К моменту подъёма ты уже наполовину проснулась — без резкого звонка."
+  },
+  snooze: {
+    emoji: "🥊",
+    title: "Боец с будильником",
+    text: "Каждое утро — раунд против кнопки «отложить». Резкий звонок выдёргивает тебя из глубокого сна, поэтому хочется уснуть обратно.",
+    tips: [
+      "Поставь один будильник вместо пяти — дробный сон утомляет сильнее.",
+      "Убери телефон подальше от кровати, чтобы вставать за ним.",
+      "Мягкое пробуждение светом и тихими звуками меньше похоже на стресс."
+    ],
+    pitch: "Свет усиливается за 30 минут до подъёма, а потом включаются звуки природы. Такое пробуждение воспринимается спокойнее, и кнопку «отложить» хочется нажимать реже."
+  },
+  owl: {
+    emoji: "🦉",
+    title: "Осенняя сова",
+    text: "Вечером ты полна сил, а утром — совсем нет. Экран перед сном и поздний отбой сдвигают твои внутренние часы всё дальше.",
+    tips: [
+      "За час до сна приглуши свет и отложи телефон — хотя бы на 20 минут.",
+      "Сдвигай отбой на 15 минут раньше каждые несколько дней.",
+      "Мягкий «закат» вечером и «рассвет» утром помогают выстроить ритм."
+    ],
+    pitch: "Режим заката плавно гасит свет, пока ты засыпаешь, а утром рассвет будит мягко. Вечер и утро наконец получают понятные границы."
+  },
+  fog: {
+    emoji: "🌫",
+    title: "Утро в тумане",
+    text: "Ты встаёшь вовремя, но осенняя серость забирает энергию и настроение. Тебе не хватает света — буквально.",
+    tips: [
+      "Лови дневной свет: прогулка 15–20 минут до обеда заметно бодрит.",
+      "Начинай утро со света, а не с экрана телефона.",
+      "Добавь в спальню тёплый, «солнечный» свет — особенно в тёмные месяцы."
+    ],
+    pitch: "Каждое утро начинается с солнца в комнате — даже когда за окном ноябрьская темнота. Мягкий тёплый свет делает пробуждение приятнее."
+  }
+};
+
+/* ============ ЛОГИКА ============ */
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg && tg.initData !== undefined) {
+  tg.ready();
+  tg.expand();
+  try { tg.setHeaderColor('bg_color'); } catch (e) {}
+  if (tg.colorScheme) document.documentElement.setAttribute('data-theme', tg.colorScheme);
+}
+const haptic = (type) => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(type || 'light'); } catch (e) {} };
+
+let current = 0;
+let scores = {};
+let resultType = null;
+
+// звёзды на старте
+(function makeStars() {
+  const dawn = document.getElementById('dawn');
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 55 + '%';
+    dawn.appendChild(s);
+  }
+})();
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function startQuiz() {
+  haptic('medium');
+  current = 0;
+  scores = { bear: 0, snooze: 0, owl: 0, fog: 0 };
+  renderQuestion();
+  show('quiz');
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[current];
+  document.getElementById('progressBar').style.width = ((current) / QUESTIONS.length * 100) + '%';
+  document.getElementById('stepLabel').textContent = `Вопрос ${current + 1} из ${QUESTIONS.length}`;
+  document.getElementById('qEmoji').textContent = q.emoji;
+  document.getElementById('qText').textContent = q.text;
+  const box = document.getElementById('options');
+  box.innerHTML = '';
+  q.options.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'option';
+    b.innerHTML = `<span class="o-emoji">${opt.e}</span><span>${opt.t}</span>`;
+    b.onclick = () => choose(b, opt.type);
+    box.appendChild(b);
+  });
+  // перезапуск анимации
+  const scr = document.getElementById('quiz');
+  scr.style.animation = 'none'; scr.offsetHeight; scr.style.animation = '';
+}
+
+function choose(btn, type) {
+  haptic('light');
+  btn.classList.add('selected');
+  document.querySelectorAll('.option').forEach(o => o.disabled = true);
+  scores[type]++;
+  setTimeout(() => {
+    current++;
+    if (current < QUESTIONS.length) renderQuestion();
+    else showResult();
+  }, 280);
+}
+
+function showResult() {
+  document.getElementById('progressBar').style.width = '100%';
+  // победитель; при равенстве — порядок приоритета
+  const order = ['fog', 'bear', 'snooze', 'owl'];
+  resultType = order.reduce((best, t) => scores[t] > scores[best] ? t : best, order[0]);
+  const r = RESULTS[resultType];
+
+  document.getElementById('rEmoji').textContent = r.emoji;
+  document.getElementById('rTitle').textContent = r.title;
+  document.getElementById('rText').textContent = r.text;
+  document.getElementById('rTips').innerHTML = r.tips.map(t => `<li>${t}</li>`).join('');
+
+  document.getElementById('pBadge').textContent = `Подходит типу «${r.title}»`;
+  document.getElementById('pName').textContent = CONFIG.productName;
+  document.getElementById('pPitch').textContent = r.pitch;
+  document.getElementById('pFeatures').innerHTML = CONFIG.features.map(f => `<li><span>${f[0]}</span>${f[1]}</li>`).join('');
+  document.getElementById('pPrice').innerHTML = CONFIG.price ? `Цена на WB: <b>${CONFIG.price}</b>` : '';
+  document.getElementById('footer').textContent = `© ${CONFIG.brand} · Тест носит развлекательный характер`;
+
+  try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+  show('result');
+}
+
+function openShop() {
+  haptic('medium');
+  if (tg && tg.openLink) tg.openLink(CONFIG.wbUrl);
+  else window.open(CONFIG.wbUrl, '_blank');
+}
+
+function shareResult() {
+  const r = RESULTS[resultType];
+  const link = CONFIG.botUsername ? `https://t.me/${CONFIG.botUsername}` : location.href;
+  const text = `Я — «${r.title}» ${r.emoji} А какое осеннее утро у тебя? Пройди тест за минуту 👇`;
+  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
+}
+
+function restart() { haptic('light'); show('start'); }
+</script>
+</body>
